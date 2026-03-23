@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,8 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -122,4 +122,35 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+/* =========================================
+   Customização Global da Barra de Rolagem
+   ========================================= */
+
+/* Largura (vertical) e Altura (horizontal) da barra */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* O fundo por onde a barra desliza (track) */
+::-webkit-scrollbar-track {
+  background: transparent; /* Deixa transparente para não poluir o visual */
+}
+
+/* A barrinha em si (thumb) que você arrasta */
+::-webkit-scrollbar-thumb {
+  background: var(--border); /* Usa a cor de borda do seu tema */
+  border-radius: 9999px; /* Deixa as pontas totalmente arredondadas */
+  border: 3px solid var(--background); /* Cria o "respiro" usando o fundo escuro exato do site */
+}
+
+/* Efeito ao passar o mouse por cima da barrinha */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground); /* Fica mais clara/destacada no hover */
+}
+
+/* Oculta as setinhas de cima e de baixo (os botões do scroll) */
+::-webkit-scrollbar-button {
+  display: none;
 }
