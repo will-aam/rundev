@@ -238,7 +238,12 @@ export function TimelineCard({
           </h3>
 
           {/* Description */}
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+          <p
+            className={cn(
+              "text-sm text-muted-foreground mb-3 transition-all duration-300",
+              !isExpanded && "line-clamp-2",
+            )}
+          >
             {event.description}
           </p>
 

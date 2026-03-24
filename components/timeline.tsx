@@ -340,41 +340,6 @@ export function Timeline() {
                 </div>
               </>
             )}
-
-            {/* Stats */}
-            <div className="max-w-7xl mx-auto px-6 mt-12">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { label: "Marcos registrados", value: events.length },
-                  {
-                    label: "Anos de jornada",
-                    value: [...new Set(events.map((e) => e.startYear))].length,
-                  },
-                  {
-                    label: "Livros lidos",
-                    value: events.filter((e) => e.categoryId === "livro")
-                      .length,
-                  },
-                  {
-                    label: "Cursos realizados",
-                    value: events.filter((e) => e.categoryId === "curso")
-                      .length,
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="bg-card rounded-xl p-4 border border-border/50"
-                  >
-                    <p className="text-3xl font-bold text-foreground">
-                      {stat.value}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         )}
       </main>
