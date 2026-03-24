@@ -135,12 +135,12 @@ interface TimelineCardProps {
   category: Category;
   categories: Category[];
   tags: Tag[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void> | void;
   onUpdate: (
     id: string,
     updates: Partial<Omit<TimelineEvent, "id" | "createdAt">>,
-  ) => void;
-  onAddTag: (name: string) => Tag;
+  ) => Promise<void> | void;
+  onAddTag: (name: string) => Promise<Tag> | Tag;
 }
 
 const monthNames = [

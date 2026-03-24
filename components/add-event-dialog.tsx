@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,8 +30,10 @@ import { cn } from "@/lib/utils";
 interface AddEventDialogProps {
   categories: Category[];
   tags: Tag[];
-  onAdd: (event: Omit<TimelineEvent, "id" | "createdAt">) => void;
-  onAddTag: (name: string) => Tag;
+  onAdd: (
+    event: Omit<TimelineEvent, "id" | "createdAt">,
+  ) => Promise<void> | void;
+  onAddTag: (name: string) => Promise<Tag> | Tag;
 }
 
 const currentYear = new Date().getFullYear();
@@ -78,6 +80,8 @@ export function AddEventDialog({
 }: AddEventDialogProps) {
   const [open, setOpen] = useState(false);
   const [hasPeriod, setHasPeriod] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
   const [formData, setFormData] = useState({
@@ -92,46 +96,56 @@ export function AddEventDialog({
     link: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title || !formData.description || !formData.categoryId)
       return;
 
-    onAdd({
-      startYear: parseInt(formData.startYear),
-      startMonth: formData.startMonth
-        ? parseInt(formData.startMonth)
-        : undefined,
-      endYear:
-        hasPeriod && formData.endYear ? parseInt(formData.endYear) : undefined,
-      endMonth:
-        hasPeriod && formData.endMonth
-          ? parseInt(formData.endMonth)
-          : undefined,
-      title: formData.title,
-      categoryId: formData.categoryId,
-      description: formData.description,
-      details: formData.details || undefined,
-      tags: selectedTags.length > 0 ? selectedTags : undefined,
-      link: formData.link || undefined,
-    });
+    setIsSubmitting(true);
 
-    // Reset form
-    setFormData({
-      startYear: currentYear.toString(),
-      startMonth: "",
-      endYear: currentYear.toString(),
-      endMonth: "",
-      title: "",
-      categoryId: categories[0]?.id || "",
-      description: "",
-      details: "",
-      link: "",
-    });
-    setSelectedTags([]);
-    setHasPeriod(false);
-    setOpen(false);
+    try {
+      await onAdd({
+        startYear: parseInt(formData.startYear),
+        startMonth: formData.startMonth
+          ? parseInt(formData.startMonth)
+          : undefined,
+        endYear:
+          hasPeriod && formData.endYear
+            ? parseInt(formData.endYear)
+            : undefined,
+        endMonth:
+          hasPeriod && formData.endMonth
+            ? parseInt(formData.endMonth)
+            : undefined,
+        title: formData.title,
+        categoryId: formData.categoryId,
+        description: formData.description,
+        details: formData.details || undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        link: formData.link || undefined,
+      });
+
+      // Reset form após salvar no banco
+      setFormData({
+        startYear: currentYear.toString(),
+        startMonth: "",
+        endYear: currentYear.toString(),
+        endMonth: "",
+        title: "",
+        categoryId: categories[0]?.id || "",
+        description: "",
+        details: "",
+        link: "",
+      });
+      setSelectedTags([]);
+      setHasPeriod(false);
+      setOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar marco:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleTag = (tagName: string) => {
@@ -142,11 +156,20 @@ export function AddEventDialog({
     );
   };
 
-  const handleAddNewTag = () => {
-    if (!newTagInput.trim()) return;
-    const newTag = onAddTag(newTagInput.trim());
-    setSelectedTags((prev) => [...prev, newTag.name]);
-    setNewTagInput("");
+  const handleAddNewTag = async () => {
+    if (!newTagInput.trim() || isAddingTag) return;
+
+    setIsAddingTag(true);
+    try {
+      // Espera a tag ser salva no banco primeiro
+      const newTag = await onAddTag(newTagInput.trim());
+      setSelectedTags((prev) => [...prev, newTag.name]);
+      setNewTagInput("");
+    } catch (error) {
+      console.error("Erro ao criar tag:", error);
+    } finally {
+      setIsAddingTag(false);
+    }
   };
 
   return (
@@ -410,9 +433,13 @@ export function AddEventDialog({
                   variant="outline"
                   size="sm"
                   onClick={handleAddNewTag}
-                  disabled={!newTagInput.trim()}
+                  disabled={!newTagInput.trim() || isAddingTag}
                 >
-                  <Plus className="w-4 h-4" />
+                  {isAddingTag ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </Field>
@@ -423,16 +450,27 @@ export function AddEventDialog({
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={
-                !formData.title || !formData.description || !formData.categoryId
+                !formData.title ||
+                !formData.description ||
+                !formData.categoryId ||
+                isSubmitting
               }
             >
-              Adicionar
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Adicionar"
+              )}
             </Button>
           </DialogFooter>
         </form>

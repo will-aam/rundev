@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Settings, Plus, Trash2, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { Settings, Plus, Trash2, X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,49 +10,53 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Category, Tag } from '@/lib/types'
-import { iconOptions, colorOptions } from '@/lib/types'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/select";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Category, Tag } from "@/lib/types";
+import { iconOptions, colorOptions } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface SettingsDialogProps {
-  categories: Category[]
-  tags: Tag[]
-  onAddCategory: (category: Omit<Category, 'id'>) => Category
-  onUpdateCategory: (id: string, updates: Partial<Category>) => void
-  onDeleteCategory: (id: string) => boolean
-  onAddTag: (name: string) => Tag
-  onDeleteTag: (id: string) => void
+  categories: Category[];
+  tags: Tag[];
+  onAddCategory: (
+    category: Omit<Category, "id">,
+  ) => Promise<Category> | Category;
+  onUpdateCategory: (
+    id: string,
+    updates: Partial<Category>,
+  ) => Promise<void> | void;
+  onDeleteCategory: (id: string) => Promise<boolean> | boolean;
+  onAddTag: (name: string) => Promise<Tag> | Tag;
+  onDeleteTag: (id: string) => Promise<void> | void;
 }
 
 const colorClasses: Record<string, string> = {
-  'teal': 'bg-teal-500',
-  'blue': 'bg-blue-500',
-  'orange': 'bg-orange-500',
-  'purple': 'bg-purple-500',
-  'amber': 'bg-amber-500',
-  'rose': 'bg-rose-500',
-  'emerald': 'bg-emerald-500',
-  'cyan': 'bg-cyan-500',
-  // Fallback
-  'primary': 'bg-teal-500',
-  'chart-1': 'bg-orange-500',
-  'chart-2': 'bg-blue-500',
-  'chart-3': 'bg-purple-500',
-  'chart-4': 'bg-amber-500',
-  'chart-5': 'bg-rose-500',
-}
+  teal: "bg-teal-500",
+  blue: "bg-blue-500",
+  orange: "bg-orange-500",
+  purple: "bg-purple-500",
+  amber: "bg-amber-500",
+  rose: "bg-rose-500",
+  emerald: "bg-emerald-500",
+  cyan: "bg-cyan-500",
+  primary: "bg-teal-500",
+  "chart-1": "bg-orange-500",
+  "chart-2": "bg-blue-500",
+  "chart-3": "bg-purple-500",
+  "chart-4": "bg-amber-500",
+  "chart-5": "bg-rose-500",
+};
 
 export function SettingsDialog({
   categories,
@@ -62,38 +66,86 @@ export function SettingsDialog({
   onAddTag,
   onDeleteTag,
 }: SettingsDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryColor, setNewCategoryColor] = useState('teal')
-  const [newCategoryIcon, setNewCategoryIcon] = useState('interests')
-  const [newTagName, setNewTagName] = useState('')
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("teal");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("interests");
+  const [newTagName, setNewTagName] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) return
-    onAddCategory({
-      name: newCategoryName.trim(),
-      color: newCategoryColor,
-      icon: newCategoryIcon,
-    })
-    setNewCategoryName('')
-    setNewCategoryColor('teal')
-    setNewCategoryIcon('interests')
-  }
+  // Loading states
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
 
-  const handleDeleteCategory = (id: string) => {
-    const success = onDeleteCategory(id)
-    if (!success) {
-      setDeleteError('Nao e possivel excluir: existem marcos usando esta categoria.')
-      setTimeout(() => setDeleteError(null), 3000)
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim() || isAddingCategory) return;
+
+    setIsAddingCategory(true);
+    try {
+      await onAddCategory({
+        name: newCategoryName.trim(),
+        color: newCategoryColor,
+        icon: newCategoryIcon,
+      });
+      setNewCategoryName("");
+      setNewCategoryColor("teal");
+      setNewCategoryIcon("interests");
+    } catch (error) {
+      console.error("Erro ao adicionar categoria:", error);
+    } finally {
+      setIsAddingCategory(false);
     }
-  }
+  };
 
-  const handleAddTag = () => {
-    if (!newTagName.trim()) return
-    onAddTag(newTagName.trim())
-    setNewTagName('')
-  }
+  const handleDeleteCategory = async (id: string) => {
+    if (deletingCategoryId) return;
+
+    setDeletingCategoryId(id);
+    try {
+      const success = await onDeleteCategory(id);
+      if (!success) {
+        setDeleteError(
+          "Nao e possivel excluir: existem marcos usando esta categoria.",
+        );
+        setTimeout(() => setDeleteError(null), 3000);
+      }
+    } catch (error) {
+      console.error("Erro ao deletar categoria:", error);
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!newTagName.trim() || isAddingTag) return;
+
+    setIsAddingTag(true);
+    try {
+      await onAddTag(newTagName.trim());
+      setNewTagName("");
+    } catch (error) {
+      console.error("Erro ao adicionar tag:", error);
+    } finally {
+      setIsAddingTag(false);
+    }
+  };
+
+  const handleDeleteTag = async (id: string) => {
+    if (deletingTagId) return;
+
+    setDeletingTagId(id);
+    try {
+      await onDeleteTag(id);
+    } catch (error) {
+      console.error("Erro ao deletar tag:", error);
+    } finally {
+      setDeletingTagId(null);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -102,7 +154,7 @@ export function SettingsDialog({
           <Settings className="w-4 h-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-137.5 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Categorias e Tags</DialogTitle>
           <DialogDescription>
@@ -125,7 +177,9 @@ export function SettingsDialog({
 
             {/* Add new category */}
             <div className="p-4 bg-secondary/50 rounded-lg mb-4">
-              <p className="text-sm font-medium text-foreground mb-3">Nova Categoria</p>
+              <p className="text-sm font-medium text-foreground mb-3">
+                Nova Categoria
+              </p>
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="cat-name">Nome</FieldLabel>
@@ -134,12 +188,16 @@ export function SettingsDialog({
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="Ex: Certificacao"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel htmlFor="cat-color">Cor</FieldLabel>
-                    <Select value={newCategoryColor} onValueChange={setNewCategoryColor}>
+                    <Select
+                      value={newCategoryColor}
+                      onValueChange={setNewCategoryColor}
+                    >
                       <SelectTrigger id="cat-color">
                         <SelectValue />
                       </SelectTrigger>
@@ -147,7 +205,12 @@ export function SettingsDialog({
                         {colorOptions.map((color) => (
                           <SelectItem key={color.value} value={color.value}>
                             <div className="flex items-center gap-2">
-                              <div className={cn('w-3 h-3 rounded-full', colorClasses[color.value])} />
+                              <div
+                                className={cn(
+                                  "w-3 h-3 rounded-full",
+                                  colorClasses[color.value],
+                                )}
+                              />
                               {color.label}
                             </div>
                           </SelectItem>
@@ -157,7 +220,10 @@ export function SettingsDialog({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="cat-icon">Icone</FieldLabel>
-                    <Select value={newCategoryIcon} onValueChange={setNewCategoryIcon}>
+                    <Select
+                      value={newCategoryIcon}
+                      onValueChange={setNewCategoryIcon}
+                    >
                       <SelectTrigger id="cat-icon">
                         <SelectValue />
                       </SelectTrigger>
@@ -171,8 +237,16 @@ export function SettingsDialog({
                     </Select>
                   </Field>
                 </div>
-                <Button onClick={handleAddCategory} className="w-full mt-2" disabled={!newCategoryName.trim()}>
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button
+                  onClick={handleAddCategory}
+                  className="w-full mt-2"
+                  disabled={!newCategoryName.trim() || isAddingCategory}
+                >
+                  {isAddingCategory ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
                   Adicionar Categoria
                 </Button>
               </FieldGroup>
@@ -180,23 +254,37 @@ export function SettingsDialog({
 
             {/* List categories */}
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground mb-2">Categorias existentes:</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                Categorias existentes:
+              </p>
               {categories.map((category) => (
                 <div
                   key={category.id}
                   className="flex items-center justify-between p-3 bg-card rounded-lg border border-border/50"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-3 h-3 rounded-full', colorClasses[category.color] || 'bg-muted')} />
-                    <span className="text-sm text-foreground">{category.name}</span>
+                    <div
+                      className={cn(
+                        "w-3 h-3 rounded-full",
+                        colorClasses[category.color] || "bg-muted",
+                      )}
+                    />
+                    <span className="text-sm text-foreground">
+                      {category.name}
+                    </span>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={() => handleDeleteCategory(category.id)}
+                    disabled={deletingCategoryId === category.id}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {deletingCategoryId === category.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               ))}
@@ -206,23 +294,34 @@ export function SettingsDialog({
           <TabsContent value="tags" className="mt-4">
             {/* Add new tag */}
             <div className="p-4 bg-secondary/50 rounded-lg mb-4">
-              <p className="text-sm font-medium text-foreground mb-3">Nova Tag</p>
+              <p className="text-sm font-medium text-foreground mb-3">
+                Nova Tag
+              </p>
               <div className="flex gap-2">
                 <Input
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
                   placeholder="Ex: JavaScript"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
                 />
-                <Button onClick={handleAddTag} disabled={!newTagName.trim()}>
-                  <Plus className="w-4 h-4" />
+                <Button
+                  onClick={handleAddTag}
+                  disabled={!newTagName.trim() || isAddingTag}
+                >
+                  {isAddingTag ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
 
             {/* List tags */}
             <div>
-              <p className="text-sm text-muted-foreground mb-3">Tags existentes:</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Tags existentes:
+              </p>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
                   <Badge
@@ -232,15 +331,22 @@ export function SettingsDialog({
                   >
                     {tag.name}
                     <button
-                      onClick={() => onDeleteTag(tag.id)}
-                      className="ml-1 p-0.5 hover:bg-background/50 rounded"
+                      onClick={() => handleDeleteTag(tag.id)}
+                      disabled={deletingTagId === tag.id}
+                      className="ml-1 p-0.5 hover:bg-background/50 rounded disabled:opacity-50"
                     >
-                      <X className="w-3 h-3" />
+                      {deletingTagId === tag.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <X className="w-3 h-3" />
+                      )}
                     </button>
                   </Badge>
                 ))}
                 {tags.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Nenhuma tag cadastrada.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma tag cadastrada.
+                  </p>
                 )}
               </div>
             </div>
@@ -248,5 +354,5 @@ export function SettingsDialog({
         </Tabs>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
