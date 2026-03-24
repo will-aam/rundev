@@ -1,0 +1,47 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String          @id @default(cuid())
+  name      String
+  color     String
+  icon      String
+  
+  // Relação: Uma categoria pode ter vários eventos
+  events    TimelineEvent[]
+}
+
+model Tag {
+  id        String @id @default(cuid())
+  name      String @unique
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  startYear   Int
+  startMonth  Int?
+  endYear     Int?
+  endMonth    Int?
+  title       String
+  description String
+  details     String?
+  link        String?
+  
+  // No PostgreSQL, podemos guardar arrays de texto diretamente na coluna!
+  tags        String[]
+  
+  // Relacionamento com a Categoria
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+
+  // O Prisma lida melhor com datas usando DateTime. 
+  // No teu frontend podes converter para número (timestamp) se necessário com .getTime()
+  createdAt   DateTime @default(now())
+}
