@@ -14,6 +14,7 @@ import { AddEventDialog } from "./add-event-dialog";
 import { SettingsDialog } from "./settings-dialog";
 import { useTimeline } from "@/hooks/use-timeline";
 import { cn } from "@/lib/utils";
+import { TechMarquee } from "./tech-marquee";
 
 // Cores vibrantes
 const colorClasses: Record<string, string> = {
@@ -343,15 +344,6 @@ export function Timeline() {
           </>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-6">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Sua jornada de aprendizado, documentada e preservada.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
